@@ -1,0 +1,54 @@
+using Microsoft.EntityFrameworkCore;
+using System.IdentityModel.Tokens.Jwt;
+using WebApiDemoG.Data;
+using WebApiDemoG.Formatters;
+using WebApiDemoG.MiddleWares;
+using WebApiDemoG.Repositories.Abstract;
+using WebApiDemoG.Repositories.Concrete;
+using WebApiDemoG.Services.Abstract;
+using WebApiDemoG.Services.Asbtract;
+using WebApiDemoG.Services.Concrete;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Add services to the container.
+
+builder.Services.AddControllers(options =>
+{
+    options.OutputFormatters.Add(new VCardOutputFormatter());
+    options.OutputFormatters.Add(new TextCsvOutputFormatter());
+    options.InputFormatters.Add(new TextCsvInputFormatter());
+});
+
+builder.Services.AddControllers();
+// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+var connection = builder.Configuration.GetConnectionString("myconn");
+builder.Services.AddDbContext<StudentDBContext>(opt =>
+{
+    opt.UseSqlServer(connection);
+});
+builder.Services.AddScoped<IStudentRepository, StudentRepository>();
+builder.Services.AddScoped<IStudentService, StudentService>();
+
+
+var app = builder.Build();
+
+// Configure the HTTP request pipeline.
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
+app.UseHttpsRedirection();
+
+app.UseMiddleware<AuthenticationMiddleware>();
+
+app.UseAuthorization();
+
+app.MapControllers();
+
+app.Run();
